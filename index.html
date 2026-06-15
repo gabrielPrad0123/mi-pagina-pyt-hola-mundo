@@ -3,86 +3,351 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Animación Python en la Web</title>
+    <title>Python Structural Studio 3D</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
-    
+
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #1e1e2e;
-            color: #cdd6f4;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #1a1b26;
+            color: #a9b1d6;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        /* Panel Lateral Izquierdo (Configuración) */
+        #panel-control {
+            width: 320px;
+            background-color: #1f2335;
+            padding: 20px;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.5);
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
+            gap: 15px;
+            z-index: 10;
+            overflow-y: auto;
         }
-        .container {
-            text-align: center;
-            background: #313244;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        h2 { color: #7aa2f7; margin-top: 0; font-size: 1.1rem; border-bottom: 2px solid #414868; padding-bottom: 8px;}
+        .grupo-input { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 0.85rem; font-weight: bold; color: #565f89; }
+        input, select {
+            background-color: #24283b;
+            border: 1px solid #414868;
+            color: #c0caf5;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.9rem;
         }
-        h1 { color: #89b4fa; margin-bottom: 5px; }
-        p { color: #a6adc8; margin-bottom: 20px; }
-        canvas {
-            background: #11111b;
-            border-radius: 8px;
-            border: 2px solid #45475a;
+        button {
+            background-color: #7aa2f7;
+            color: #1a1b26;
+            border: none;
+            padding: 10px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #89ddff; }
+        
+        /* Botones de Modo de Dibujo */
+        .btn-modo {
+            border: 2px solid transparent;
+            color: white;
+            opacity: 0.6;
+        }
+        .btn-modo.activo { opacity: 1; border-color: white; }
+        #btn-columna { background-color: #38bdf8; color: #0f172a; }
+        #btn-viga { background-color: #f87171; color: #450a0a; }
+        #btn-borrar { background-color: #4b5563; color: white; }
+
+        /* Lienzo 3D Derecha */
+        #lienzo-3d {
+            flex-grow: 1;
+            position: relative;
+            background-color: #14141b;
+        }
+        .instrucciones {
+            font-size: 0.8rem;
+            color: #787c99;
+            font-style: italic;
+            line-height: 1.4;
+            background: #24283b;
+            padding: 10px;
+            border-radius: 6px;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>Animación de Onda con Python</h1>
-        <p>Ejecutándose en tiempo real desde el navegador</p>
+    <div id="panel-control">
+        <h2>CONFIGURACIÓN Y HERRAMIENTAS</h2>
         
-        <canvas id="canvasAnimacion" width="600" height="300"></canvas>
+        <div class="grupo-input">
+            <label>Num. Grillas X (m):</label>
+            <input type="text" id="editGrillasX" value="0, 4.5, 4.5">
+        </div>
+        <div class="grupo-input">
+            <label>Num. Grillas Y (m):</label>
+            <input type="text" id="editGrillasY" value="0, 3">
+        </div>
+        <div class="grupo-input">
+            <label>Alturas Z (m):</label>
+            <input type="text" id="editNivelesZ" value="2.5, 2.5">
+        </div>
+
+        <button id="btn-generar">Generar / Resetear Grilla</button>
+
+        <div class="grupo-input">
+            <label>Sección Activa:</label>
+            <select id="dropSecciones">
+                <option value="Sec_01">Columnas: 30x40 (Sec_01)</option>
+                <option value="Sec_02">Cuadrada: 40x40 (Sec_02)</option>
+                <option value="Sec_03">Vigas: 30x30 (Sec_03)</option>
+            </select>
+        </div>
+
+        <h2>HERRAMIENTAS DE DIBUJO</h2>
+        <button id="btn-columna" class="btn-modo activo">DIBUJAR COLUMNAS</button>
+        <button id="btn-viga" class="btn-modo">DIBUJAR VIGAS</button>
+        <button id="btn-borrar" class="btn-modo">BORRAR ELEMENTO</button>
+
+        <div class="instrucciones">
+            <strong>Instrucciones:</strong><br>
+            1. Configura tu malla y dale Generar.<br>
+            2. Selecciona un modo de dibujo.<br>
+            3. Haz clic en un nodo rojo y luego en otro para trazar.<br>
+            4. En modo Borrar, haz clic directo en una viga/columna.
+        </div>
     </div>
+
+    <div id="lienzo-3d"></div>
+
+    <script>
+        // Configuración inicial del motor 3D de la escena
+        const contenedor = document.getElementById('lienzo-3d');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x14141b);
+        
+        const camera = new THREE.PerspectiveCamera(45, contenedor.clientWidth / contenedor.clientHeight, 0.1, 1000);
+        camera.position.set(15, 15, 20);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(contenedor.clientWidth, contenedor.clientHeight);
+        renderer.shadowMap.enabled = true;
+        contenedor.appendChild(renderer.domElement);
+        
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(4.5, 2, 0);
+        controls.update();
+
+        // Luces (Gouraud/Phong simulación)
+        const light = new THREE.DirectionalLight(0xffffff, 1.2);
+        light.position.set(10, 20, 15);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040, 0.7));
+
+        // Manejo del cambio de tamaño de pantalla
+        window.addEventListener('resize', () => {
+            camera.aspect = contenedor.clientWidth / contenedor.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(contenedor.clientWidth, contenedor.clientHeight);
+        });
+
+        // Bucle de renderizado continuo
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Arrays globales para interactuar mediante clics (Raycasting)
+        let nodosInteractivos = [];
+        let elementosEstructurales = [];
+    </script>
 
     <script type="py">
 import math
-# Importamos 'create_proxy' desde pyodide_js para proteger nuestra animación
+from js import document, window, THREE, scene, nodosInteractivos, elementosEstructurales, camera
 from pyodide.ffi import create_proxy
-from js import document, window
 
-canvas = document.getElementById("canvasAnimacion")
-ctx = canvas.getContext("2d")
-width = canvas.width
-height = canvas.height
+class MiniStudioWeb:
+    def __init__(self):
+        self.modo_activo = 'Columna' # Columna, Viga, Borrar
+        self.nodo_inicial = None
+        self.marcador_temporal = None
+        
+        # Diccionario de secciones equivalentes a MATLAB [ancho, alto]
+        self.secciones = {
+            'Sec_01': [0.3, 0.4],
+            'Sec_02': [0.4, 0.4],
+            'Sec_03': [0.3, 0.3]
+        }
+        
+        # Enlazar botones HTML con Python
+        document.getElementById("btn-generar").onclick = create_proxy(self.inicializar_malla)
+        document.getElementById("btn-columna").onclick = create_proxy(lambda e: self.cambiar_modo('Columna'))
+        document.getElementById("btn-viga").onclick = create_proxy(lambda e: self.cambiar_modo('Viga'))
+        document.getElementById("btn-borrar").onclick = create_proxy(lambda e: self.cambiar_modo('Borrar'))
+        
+        # Evento de clic en el lienzo 3D
+        document.getElementById("lienzo-3d").onmousedown = create_proxy(self.procesar_clic)
+        
+        # Construir la primera grilla por defecto
+        self.inicializar_malla(None)
 
-fase = [0.0]
+    def cambiar_modo(self, modo):
+        self.modo_activo = modo
+        # Alternar clases CSS visuales de los botones
+        for m in ['columna', 'viga', 'borrar']:
+            btn = document.getElementById(f"btn-{m}")
+            if m == modo.lower():
+                btn.classList.add("activo")
+            else:
+                btn.classList.remove("activo")
+        self.resetear_seleccion()
 
-def dibujar_onda(timestamp):
-    ctx.clearRect(0, 0, width, height)
-    ctx.beginPath()
-    ctx.strokeStyle = "#89b4fa"
-    ctx.lineWidth = 3
-    
-    for x in range(0, int(width), 2):
-        y = 50 * math.sin(0.02 * x + fase[0]) + (height / 2)
-        if x == 0:
-            ctx.moveTo(x, y)
-        else:
-            ctx.lineTo(x, y)
-            
-    ctx.stroke()
-    fase[0] += 0.05
-    
-    # Volvemos a llamar usando el proxy protegido
-    window.requestAnimationFrame(proxy_animacion)
+    def resetear_seleccion(self):
+        if self.marcador_temporal:
+            scene.remove(self.marcador_temporal)
+            self.marcador_temporal = None
+        self.nodo_inicial = None
 
-# Creamos el proxy permanente para que el navegador no destruya la función de Python
-proxy_animacion = create_proxy(dibujar_onda)
+    def inicializar_malla(self, event):
+        # 1. Limpiar objetos viejos de la escena
+        for nodo in nodosInteractivos: scene.remove(nodo)
+        for elem in elementosEstructurales: scene.remove(elem)
+        nodosInteractivos.clear()
+        elementosEstructurales.clear()
+        self.resetear_seleccion()
 
-# Arrancamos la animación por primera vez
-window.requestAnimationFrame(proxy_animacion)
+        # 2. Leer grillas tipo MATLAB (cumsum/meshgrid simulado)
+        try:
+            gx = [float(x) for x in document.getElementById("editGrillasX").value.split(",")]
+            gy = [float(y) for y in document.getElementById("editGrillasY").value.split(",")]
+            gz = [float(z) for z in document.getElementById("editNivelesZ").value.split(",")]
+        except:
+            window.alert("Error en el formato de números. Usa comas (ej. 0, 4.5, 4.5)")
+            return
+
+        # Procesar vectores acumulados (cumsum de MATLAB)
+        acum_x, acum_y, acum_z = [0.0], [0.0], [0.0]
+        s = 0.0
+        for x in gx: s += x; acum_x.append(s)
+        s = 0.0
+        for y in gy: s += y; acum_y.append(s)
+        s = 0.0
+        for z in gz: s += z; acum_z.append(s)
+
+        # 3. Re-crear Grilla de Líneas en el suelo
+        grid_helper = THREE.GridHelper(max(acum_x[-1], acum_y[-1])*2, 20, 0x414868, 0x24283b)
+        grid_helper.position.set(acum_x[-1]/2, 0, acum_y[-1]/2)
+        scene.add(grid_helper)
+        elementosEstructurales.append(grid_helper)
+
+        # 4. Generar Nodos Físicos Interactivos en el espacio 3D
+        geo_nodo = THREE.SphereGeometry(0.15, 16, 16)
+        
+        for z in acum_z:
+            for y in acum_y:
+                for x in acum_x:
+                    # El color cambia si es base empotrada (Z=0) o elevación como en tu script
+                    color_nodo = 0x4b5563 if z == 0 else 0xf87171
+                    mat_nodo = THREE.MeshPhongMaterial()
+                    mat_nodo.color.setHex(color_nodo)
+                    
+                    mesh_nodo = THREE.Mesh.new(geo_nodo, mat_nodo)
+                    # En Three.js el eje vertical por defecto es Y, mapeamos MATLAB(X,Y,Z) -> Web(X,Z,Y)
+                    mesh_nodo.position.set(x, z, y) 
+                    mesh_nodo.userData.coords = [x, z, y] # Guardar coordenadas reales
+                    
+                    scene.add(mesh_nodo)
+                    nodosInteractivos.append(mesh_nodo)
+
+    def procesar_clic(self, event):
+        # Sistema de Raycasting nativo para detectar en qué objeto 3D hizo clic el usuario
+        raycaster = THREE.Raycaster.new()
+        mouse = THREE.Vector2.new()
+        
+        rect = document.getElementById("lienzo-3d").getBoundingClientRect()
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+        
+        raycaster.setFromCamera(mouse, camera)
+
+        if self.modo_activo == 'Borrar':
+            # Buscar intersección con vigas o columnas
+            intersecciones = raycaster.intersectObjects(elementosEstructurales)
+            if intersecciones.length > 0:
+                objeto_clicado = intersecciones.get(0).object
+                scene.remove(objeto_clicado)
+                elementosEstructurales.remove(objeto_clicado)
+            return
+
+        # Modos de dibujo: Buscar clics en Nodos Rojos/Grises
+        intersecciones = raycaster.intersectObjects(nodosInteractivos)
+        if intersecciones.length > 0:
+            nodo_clicado = intersecciones.get(0).object
+            pos = nodo_clicado.userData.coords
+
+            if self.nodo_inicial is None:
+                # Primer Clic (Origen)
+                self.nodo_inicial = pos
+                geo_marcador = THREE.SphereGeometry(0.22, 16, 16)
+                mat_marcador = THREE.MeshBasicMaterial()
+                mat_marcador.color.setHex(0x4ade80) # Verde marcador de MATLAB
+                self.marcador_temporal = THREE.Mesh.new(geo_marcador, mat_marcador)
+                self.marcador_temporal.position.set(pos[0], pos[1], pos[2])
+                scene.add(self.marcador_temporal)
+            else:
+                # Segundo Clic (Destino)
+                p1 = self.nodo_inicial
+                p2 = pos
+                
+                if p1 != p2:
+                    sec_activa = document.getElementById("dropSecciones").value
+                    dim = self.secciones[sec_activa]
+                    
+                    color_elem = 0x38bdf8 if self.modo_activo == 'Columna' else 0xf87171
+                    self.construir_prisma_3d(p1, p2, dim[0], dim[1], color_elem)
+                
+                self.resetear_seleccion()
+
+    def construir_prisma_3d(self, p1, p2, base, altura, color_hex):
+        # Calcular distancias y dirección espacial del elemento tridimensional
+        dx, dy, dz = p2[0]-p1[0], p2[1]-p1[1], p2[2]-p1[2]
+        longitud = math.sqrt(dx**2 + dy**2 + dz**2)
+        if longitud == 0: return
+
+        # Crear el prisma volumétrico con la sección elegida
+        geometry = THREE.BoxGeometry(base, longitud, altura)
+        material = THREE.MeshPhongMaterial()
+        material.color.setHex(color_hex)
+        mesh = THREE.Mesh.new(geometry, material)
+
+        # Posicionarlo en el punto medio de ambos nodos
+        mesh.position.set(p1[0] + dx/2, p1[1] + dy/2, p1[2] + dz/2)
+
+        # Orientar el vector del prisma hacia el nodo destino (Equivalente al álgebra de rotación en tu MATLAB)
+        vector_destino = THREE.Vector3.new(dx, dy, dz)
+        vector_destino.normalize()
+        vector_arriba = THREE.Vector3.new(0, 1, 0)
+        
+        cuaternion = THREE.Quaternion.new()
+        cuaternion.setFromUnitVectors(vector_arriba, vector_destino)
+        mesh.setRotationFromQuaternion(cuaternion)
+
+        scene.add(mesh)
+        elementosEstructurales.append(mesh)
+
+# Instanciar la app de Python en la web
+app = MiniStudioWeb()
     </script>
-
 </body>
 </html>
