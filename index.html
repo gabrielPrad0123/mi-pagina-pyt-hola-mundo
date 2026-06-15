@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Animación Python en la Web</title>
     
-    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
-    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <link rel="stylesheet" href="https://pyscript.net/alpha/pyscript.css" />
+    <script defer src="https://pyscript.net/alpha/pyscript.js"></script>
     
     <style>
         body {
@@ -45,47 +45,45 @@
         <canvas id="canvasAnimacion" width="600" height="300"></canvas>
     </div>
 
-    <script type="py">
-        import math
-        from js import document, window
+    <py-script>
+import math
+from js import document, window
 
-        # Configuración del lienzo (Canvas)
-        canvas = document.getElementById("canvasAnimacion")
-        ctx = canvas.getContext("2d")
-        width = canvas.width
-        height = canvas.height
+canvas = document.getElementById("canvasAnimacion")
+ctx = canvas.getContext("2d")
+width = canvas.width
+height = canvas.height
 
-        fase = 0.0
+# Usamos un diccionario para mantener el estado de la fase en el bucle
+estado = {"fase": 0.0}
 
-        def dibujar_onda(timestamp):
-            global fase
-            # Limpiar el lienzo en cada fotograma
-            ctx.clearRect(0, 0, width, height)
+def dibujar_onda(*args):
+    # Limpiar el lienzo
+    ctx.clearRect(0, 0, width, height)
+    
+    # Dibujar la línea de la onda
+    ctx.beginPath()
+    ctx.strokeStyle = "#89b4fa"
+    ctx.lineWidth = 3
+    
+    for x in range(0, int(width), 2):
+        y = 50 * math.sin(0.02 * x + estado["fase"]) + (height / 2)
+        if x == 0:
+            ctx.moveTo(x, y)
+        else:
+            ctx.lineTo(x, y)
             
-            # Dibujar la línea de la onda
-            ctx.beginPath()
-            ctx.strokeStyle = "#89b4fa"
-            ctx.lineWidth = 3
-            
-            for x in range(0, int(width), 2):
-                # Ecuación matemática de la onda: y = amp * sin(freq * x + fase) + vertical_offset
-                y = 50 * math.sin(0.02 * x + fase) + (height / 2)
-                if x == 0:
-                    ctx.moveTo(x, y)
-                else:
-                    ctx.lineTo(x, y)
-                    
-            ctx.stroke()
-            
-            # Avanzar la fase para animar el movimiento
-            fase += 0.05
-            
-            # Pedirle al navegador el siguiente fotograma (bucle infinito de animación)
-            window.requestAnimationFrame(dibujar_onda)
+    ctx.stroke()
+    
+    # Avanzar la fase para el movimiento
+    estado["fase"] += 0.05
+    
+    # Volver a llamar la función en el siguiente frame
+    window.requestAnimationFrame(dibujar_onda)
 
-        # Iniciar la animación
-        window.requestAnimationFrame(dibujar_onda)
-    </script>
+# Iniciar la animación de inmediato
+window.requestAnimationFrame(dibujar_onda)
+    </py-script>
 
 </body>
 </html>
