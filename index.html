@@ -205,15 +205,18 @@
         };
 
         let marcadorTemporal = null;
+
         contenedor.onmousedown = function(event) {
             const raycaster = new THREE.Raycaster();
             const mouse = new THREE.Vector2();
             const rect = contenedor.getBoundingClientRect();
             
-            // Cálculo preciso de la posición del mouse en la pantalla de dibujo
             mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
+
+            // DIAGNÓSTICO 1: Ver si el clic en la pantalla responde
+            console.log("Clic detectado en las coordenadas de pantalla:", mouse.x, mouse.y);
 
             if (document.getElementById("btn-borrar").classList.contains("activo")) {
                 const intersectados = raycaster.intersectObjects(elementosEstructurales);
@@ -225,17 +228,20 @@
                 return;
             }
 
-            // Detección de clics en los nodos con un umbral de tolerancia (params adicionales de raycast)
-            raycaster.params.Points.threshold = 0.3;
-            const intersectados = raycaster.intersectObjects(nodosInteractivos);
+            // Detección con máxima tolerancia
+            const intersectados = raycaster.intersectObjects(nodosInteractivos, true);
             
             if (intersectados.length > 0) {
                 const nodo = intersectados[0].object;
                 const coords = nodo.userData.coords;
                 
+                // DIAGNÓSTICO 2: Si el rayo toca un nodo, saldrá este mensaje
+                window.alert("¡Éxito! El rayo tocó el nodo en: " + coords);
+                
                 if (window.python_procesar_nodo) {
-                    // Pasamos las coordenadas como un array estándar de JS
                     window.python_procesar_nodo(coords);
+                } else {
+                    window.alert("Error: JavaScript no encuentra la función de Python.");
                 }
             }
         };
