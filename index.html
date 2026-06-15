@@ -135,7 +135,7 @@
         controls.target.set(4.5, 2, 0);
         controls.update();
 
-        // Luces fijas
+        // Luces fijas para el volumen 3D
         const light = new THREE.DirectionalLight(0xffffff, 1.2);
         light.position.set(10, 20, 15);
         scene.add(light);
@@ -153,11 +153,9 @@
         }
         animate();
 
-        // Estructuras de almacenamiento accesibles mediante funciones
         let nodosInteractivos = [];
         let elementosEstructurales = [];
 
-        // Funciones puente nativas que Python llamará directamente sin hacer "import" de objetos
         window.js_limpiar_escena = function() {
             nodosInteractivos.forEach(n => scene.remove(n));
             elementosEstructurales.forEach(e => scene.remove(e));
@@ -168,17 +166,20 @@
         window.js_agregar_grid = function(max_val, centro_x, centro_y) {
             const gridHelper = new THREE.GridHelper(max_val * 2, 20, 0x414868, 0x24283b);
             gridHelper.position.set(centro_x, 0, centro_y);
-            scene.add(gridHelper)
+            scene.add(gridHelper);
             elementosEstructurales.push(gridHelper);
         };
 
         window.js_crear_nodo = function(x, z, y, es_base) {
-            const geo = new THREE.SphereGeometry(0.15, 16, 16);
+            // Agrandamos ligeramente el radio a 0.25 para facilitar el clic del usuario
+            const geo = new THREE.SphereGeometry(0.25, 16, 16);
             const mat = new THREE.MeshPhongMaterial();
             mat.color.setHex(es_base ? 0x4b5563 : 0xf87171);
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.set(x, z, y);
-            mesh.userData = { coords: [x, z, y] };
+            
+            // Guardamos las coordenadas en un array simple de JS para Python
+            mesh.userData = { coords: [Number(x), Number(z), Number(y)] };
             scene.add(mesh);
             nodosInteractivos.push(mesh);
         };
@@ -189,7 +190,7 @@
             if (longitud === 0) return;
 
             const geometry = new THREE.BoxGeometry(base, longitud, altura);
-            const material = new THREE.MeshPhongMaterial({ color: color_hex });
+            const material = new THREE.MeshPhongMaterial({ color: color_hex, specular: 0x111111, shininess: 30 });
             const mesh = new THREE.Mesh(geometry, material);
 
             mesh.position.set(p1[0] + dx/2, p1[1] + dy/2, p1[2] + dz/2);
@@ -203,18 +204,17 @@
             elementosEstructurales.push(mesh);
         };
 
-        // Escuchar clics usando el sistema Raycaster nativo de JS
         let marcadorTemporal = null;
         contenedor.onmousedown = function(event) {
             const raycaster = new THREE.Raycaster();
             const mouse = new THREE.Vector2();
             const rect = contenedor.getBoundingClientRect();
             
+            // Cálculo preciso de la posición del mouse en la pantalla de dibujo
             mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
 
-            // Si estamos en modo borrar (se verifica el estado del botón en el DOM)
             if (document.getElementById("btn-borrar").classList.contains("activo")) {
                 const intersectados = raycaster.intersectObjects(elementosEstructurales);
                 if (intersectados.length > 0) {
@@ -225,14 +225,16 @@
                 return;
             }
 
-            // Modos de dibujo
+            // Detección de clics en los nodos con un umbral de tolerancia (params adicionales de raycast)
+            raycaster.params.Points.threshold = 0.3;
             const intersectados = raycaster.intersectObjects(nodosInteractivos);
+            
             if (intersectados.length > 0) {
                 const nodo = intersectados[0].object;
                 const coords = nodo.userData.coords;
                 
-                // Enviamos las coordenadas directo a la lógica de Python alojada en window
                 if (window.python_procesar_nodo) {
+                    // Pasamos las coordenadas como un array estándar de JS
                     window.python_procesar_nodo(coords);
                 }
             }
@@ -241,7 +243,8 @@
         window.js_manejar_marcador = function(coords, crear) {
             if (marcadorTemporal) { scene.remove(marcadorTemporal); marcadorTemporal = null; }
             if (crear && coords) {
-                const geo = new THREE.SphereGeometry(0.22, 16, 16);
+                // El marcador verde de origen también lo hacemos un poco más vistoso
+                const geo = new THREE.SphereGeometry(0.32, 16, 16);
                 const mat = new THREE.MeshBasicMaterial({ color: 0x4ade80 });
                 marcadorTemporal = new THREE.Mesh(geo, mat);
                 marcadorTemporal.position.set(coords[0], coords[1], coords[2]);
