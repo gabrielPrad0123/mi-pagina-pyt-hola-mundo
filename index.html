@@ -47,6 +47,8 @@
 
     <script type="py">
 import math
+# Importamos 'create_proxy' desde pyodide_js para proteger nuestra animación
+from pyodide.ffi import create_proxy
 from js import document, window
 
 canvas = document.getElementById("canvasAnimacion")
@@ -54,7 +56,6 @@ ctx = canvas.getContext("2d")
 width = canvas.width
 height = canvas.height
 
-# Usamos una lista simple para mantener la fase global en PyScript
 fase = [0.0]
 
 def dibujar_onda(timestamp):
@@ -72,10 +73,15 @@ def dibujar_onda(timestamp):
             
     ctx.stroke()
     fase[0] += 0.05
-    window.requestAnimationFrame(dibujar_onda)
+    
+    # Volvemos a llamar usando el proxy protegido
+    window.requestAnimationFrame(proxy_animacion)
 
-# Arrancar bucle
-window.requestAnimationFrame(dibujar_onda)
+# Creamos el proxy permanente para que el navegador no destruya la función de Python
+proxy_animacion = create_proxy(dibujar_onda)
+
+# Arrancamos la animación por primera vez
+window.requestAnimationFrame(proxy_animacion)
     </script>
 
 </body>
