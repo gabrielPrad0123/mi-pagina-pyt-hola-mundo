@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Animación Python en la Web</title>
+    
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e2e;
+            color: #cdd6f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            background: #313244;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        h1 { color: #89b4fa; margin-bottom: 5px; }
+        p { color: #a6adc8; margin-bottom: 20px; }
+        canvas {
+            background: #11111b;
+            border-radius: 8px;
+            border: 2px solid #45475a;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Animación de Onda con Python</h1>
+        <p>Ejecutándose en tiempo real desde el navegador</p>
+        
+        <canvas id="canvasAnimacion" width="600" height="300"></canvas>
+    </div>
+
+    <script type="py">
+        import math
+        from js import document, window
+
+        # Configuración del lienzo (Canvas)
+        canvas = document.getElementById("canvasAnimacion")
+        ctx = canvas.getContext("2d")
+        width = canvas.width
+        height = canvas.height
+
+        fase = 0.0
+
+        def dibujar_onda(timestamp):
+            global fase
+            # Limpiar el lienzo en cada fotograma
+            ctx.clearRect(0, 0, width, height)
+            
+            # Dibujar la línea de la onda
+            ctx.beginPath()
+            ctx.strokeStyle = "#89b4fa"
+            ctx.lineWidth = 3
+            
+            for x in range(0, int(width), 2):
+                # Ecuación matemática de la onda: y = amp * sin(freq * x + fase) + vertical_offset
+                y = 50 * math.sin(0.02 * x + fase) + (height / 2)
+                if x == 0:
+                    ctx.moveTo(x, y)
+                else:
+                    ctx.lineTo(x, y)
+                    
+            ctx.stroke()
+            
+            # Avanzar la fase para animar el movimiento
+            fase += 0.05
+            
+            # Pedirle al navegador el siguiente fotograma (bucle infinito de animación)
+            window.requestAnimationFrame(dibujar_onda)
+
+        # Iniciar la animación
+        window.requestAnimationFrame(dibujar_onda)
+    </script>
+
+</body>
+</html>
