@@ -129,47 +129,48 @@
 
     <div id="lienzo-3d"></div>
 
-    <script>
-        // Configuración inicial del motor 3D de la escena
+<script>
         const contenedor = document.getElementById('lienzo-3d');
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x14141b);
         
-        const camera = new THREE.PerspectiveCamera(45, contenedor.clientWidth / contenedor.clientHeight, 0.1, 1000);
-        camera.position.set(15, 15, 20);
+        // Declaramos las variables directamente en window para que Python las vea al 100%
+        window.scene = new THREE.Scene();
+        window.scene.background = new THREE.Color(0x14141b);
+        
+        window.camera = new THREE.PerspectiveCamera(45, contenedor.clientWidth / contenedor.clientHeight, 0.1, 1000);
+        window.camera.position.set(15, 15, 20);
         
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(contenedor.clientWidth, contenedor.clientHeight);
         renderer.shadowMap.enabled = true;
         contenedor.appendChild(renderer.domElement);
         
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        const controls = new THREE.OrbitControls(window.camera, renderer.domElement);
         controls.target.set(4.5, 2, 0);
         controls.update();
 
-        // Luces (Gouraud/Phong simulación)
+        // Luces
         const light = new THREE.DirectionalLight(0xffffff, 1.2);
         light.position.set(10, 20, 15);
-        scene.add(light);
-        scene.add(new THREE.AmbientLight(0x404040, 0.7));
+        window.scene.add(light);
+        window.scene.add(new THREE.AmbientLight(0x404040, 0.7));
 
         // Manejo del cambio de tamaño de pantalla
         window.addEventListener('resize', () => {
-            camera.aspect = contenedor.clientWidth / contenedor.clientHeight;
-            camera.updateProjectionMatrix();
+            window.camera.aspect = contenedor.clientWidth / contenedor.clientHeight;
+            window.camera.updateProjectionMatrix();
             renderer.setSize(contenedor.clientWidth, contenedor.clientHeight);
         });
 
         // Bucle de renderizado continuo
         function animate() {
             requestAnimationFrame(animate);
-            renderer.render(scene, camera);
+            renderer.render(window.scene, window.camera);
         }
         animate();
 
-        // Arrays globales para interactuar mediante clics (Raycasting)
-        let nodosInteractivos = [];
-        let elementosEstructurales = [];
+        // Arrays globales visibles para PyScript
+        window.nodosInteractivos = [];
+        window.elementosEstructurales = [];
     </script>
 
     <script type="py">
