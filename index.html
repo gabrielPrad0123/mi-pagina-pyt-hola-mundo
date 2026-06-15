@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Animación Python en la Web</title>
     
-    <link rel="stylesheet" href="https://pyscript.net/alpha/pyscript.css" />
-    <script defer src="https://pyscript.net/alpha/pyscript.js"></script>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     
     <style>
         body {
@@ -45,7 +45,7 @@
         <canvas id="canvasAnimacion" width="600" height="300"></canvas>
     </div>
 
-    <py-script>
+    <script type="py">
 import math
 from js import document, window
 
@@ -54,36 +54,29 @@ ctx = canvas.getContext("2d")
 width = canvas.width
 height = canvas.height
 
-# Usamos un diccionario para mantener el estado de la fase en el bucle
-estado = {"fase": 0.0}
+# Usamos una lista simple para mantener la fase global en PyScript
+fase = [0.0]
 
-def dibujar_onda(*args):
-    # Limpiar el lienzo
+def dibujar_onda(timestamp):
     ctx.clearRect(0, 0, width, height)
-    
-    # Dibujar la línea de la onda
     ctx.beginPath()
     ctx.strokeStyle = "#89b4fa"
     ctx.lineWidth = 3
     
     for x in range(0, int(width), 2):
-        y = 50 * math.sin(0.02 * x + estado["fase"]) + (height / 2)
+        y = 50 * math.sin(0.02 * x + fase[0]) + (height / 2)
         if x == 0:
             ctx.moveTo(x, y)
         else:
             ctx.lineTo(x, y)
             
     ctx.stroke()
-    
-    # Avanzar la fase para el movimiento
-    estado["fase"] += 0.05
-    
-    # Volver a llamar la función en el siguiente frame
+    fase[0] += 0.05
     window.requestAnimationFrame(dibujar_onda)
 
-# Iniciar la animación de inmediato
+# Arrancar bucle
 window.requestAnimationFrame(dibujar_onda)
-    </py-script>
+    </script>
 
 </body>
 </html>
